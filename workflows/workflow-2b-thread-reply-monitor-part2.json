@@ -1,0 +1,80 @@
+{
+  "name": "Workflow 2B - Thread Reply Monitor (Part 2)",
+  "description": "Part 2: Continues from Part 1 after email is marked as read. Handles Excel logging.",
+  "nodes": [
+    {
+      "parameters": {
+        "triggerType": "webhook"
+      },
+      "id": "Webhook From Part 1",
+      "name": "Receive Data From Part 1",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [50, 100]
+    },
+    {
+      "parameters": {
+        "spreadsheetId": "your_google_sheet_id",
+        "range": "Sheet1!A:N",
+        "columns": {
+          "Timestamp": "={{ new Date().toISOString() }}",
+          "Email ID": "={{ $json.id }}",
+          "Thread ID": "={{ $json.threadId }}",
+          "Customer Email": "={{ $json.from[0].email }}",
+          "Subject": "={{ $json.subject }}",
+          "Category": "={{ JSON.parse($json.aiResponse).category }}",
+          "Sentiment": "={{ JSON.parse($json.aiResponse).sentiment }}",
+          "Priority": "={{ JSON.parse($json.aiResponse).priority }}",
+          "Confidence Score": "={{ JSON.parse($json.aiResponse).confidence_score }}",
+          "Original Message": "={{ $json.body }}",
+          "AI Response": "={{ JSON.parse($json.aiResponse).response_body }}",
+          "Status": "Thread Reply",
+          "Response Sent Time": "={{ new Date().toISOString() }}",
+          "Conversation Stage": "={{ JSON.parse($json.aiResponse).thread_status }}"
+        }
+      },
+      "id": "Update Excel Record",
+      "name": "Update Excel Record",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 3,
+      "position": [250, 100],
+      "credentials": {
+        "googleSheetsOAuth2": "google_sheets_credentials"
+      }
+    },
+    {
+      "parameters": {
+        "message": "✅ Thread reply processed and logged successfully"
+      },
+      "id": "Success Log",
+      "name": "Success Log",
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [450, 100]
+    }
+  ],
+  "connections": {
+    "Webhook From Part 1": {
+      "main": [
+        [
+          {
+            "node": "Update Excel Record",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update Excel Record": {
+      "main": [
+        [
+          {
+            "node": "Success Log",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  }
+}
