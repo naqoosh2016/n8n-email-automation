@@ -1,0 +1,234 @@
+{
+  "name": "Workflow 1 - Main Email Processor",
+  "nodes": [
+    {
+      "parameters": {
+        "interval": [5],
+        "unit": "minutes"
+      },
+      "id": "Schedule Trigger",
+      "name": "Schedule Trigger",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1,
+      "position": [50, 100]
+    },
+    {
+      "parameters": {
+        "mailbox": "INBOX",
+        "searchCriteria": "is:unread",
+        "simple": false,
+        "returnFormat": "resolved",
+        "options": {}
+      },
+      "id": "Gmail Search",
+      "name": "Gmail Search - Unread Emails",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2,
+      "position": [250, 100],
+      "credentials": {
+        "gmailOAuth2": "gmail_credentials"
+      }
+    },
+    {
+      "parameters": {
+        "mode": "jsonToPairs",
+        "jsonObject": "={{ $json }}"
+      },
+      "id": "Extract Email Data",
+      "name": "Extract Email Data",
+      "type": "n8n-nodes-base.functionItem",
+      "typeVersion": 1,
+      "position": [450, 100]
+    },
+    {
+      "parameters": {
+        "model": "claude-3-5-sonnet-20241022",
+        "messages": {
+          "values": [
+            {
+              "content": "=You are a professional customer service AI. Analyze the following customer email and respond in JSON format:\n\nCustomer Email:\nSubject: {{ $json.subject }}\nBody: {{ $json.body }}\n\nProvide:\n{\n  \"category\": \"[Primary category from: Product Complaint, Product Change Request, Appreciation/Positive Feedback, Product Quality Concern, Shipping/Delivery Issue, Refund/Return Request, Information Inquiry, Follow-up/Reminder, Urgent Escalation, General Customer Support, Unknown/Other]\",\n  \"sentiment\": \"[Positive, Neutral, Negative, Frustrated, Angry, Urgent]\",\n  \"priority\": \"[Low, Medium, High, Critical]\",\n  \"confidence_score\": \"[0-100]\",\n  \"subject\": \"[Professional reply subject line]\",\n  \"response_body\": \"[Professional 150-250 word response]\",\n  \"action_required\": \"[Brief action description]\",\n  \"thread_status\": \"[New, Active, Resolved]\"\n}\n\nResponse must be polite, empathetic, professional, and directly address the customer's concern."
+            }
+          ]
+        }
+      },
+      "id": "AI Email Analyzer",
+      "name": "AI Email Analyzer (Claude)",
+      "type": "n8n-nodes-base.anthropic",
+      "typeVersion": 1,
+      "position": [650, 100],
+      "credentials": {
+        "anthropicApi": "anthropic_credentials"
+      }
+    },
+    {
+      "parameters": {
+        "mode": "simple",
+        "jsonData": "={{ $json.content[0].text }}"
+      },
+      "id": "JSON Parse Response",
+      "name": "JSON Parse Response",
+      "type": "n8n-nodes-base.jsonToPairs",
+      "typeVersion": 1,
+      "position": [850, 100]
+    },
+    {
+      "parameters": {
+        "toEmail": "={{ $json.from[0].email }}",
+        "subject": "=RE: {{ $json.subject }}",
+        "message": "={{ JSON.parse($json.content[0].text).response_body }}"
+      },
+      "id": "Send Gmail Reply",
+      "name": "Send Gmail Reply",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2,
+      "position": [1050, 100],
+      "credentials": {
+        "gmailOAuth2": "gmail_credentials"
+      }
+    },
+    {
+      "parameters": {
+        "messageId": "={{ $json.id }}",
+        "action": "markAsRead"
+      },
+      "id": "Mark Email Read",
+      "name": "Mark Email Read",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2,
+      "position": [1250, 100],
+      "credentials": {
+        "gmailOAuth2": "gmail_credentials"
+      }
+    },
+    {
+      "parameters": {
+        "spreadsheetId": "your_google_sheet_id",
+        "range": "Sheet1!A:N",
+        "columns": {
+          "Timestamp": "={{ new Date().toISOString() }}",
+          "Email ID": "={{ $json.id }}",
+          "Thread ID": "={{ $json.threadId }}",
+          "Customer Email": "={{ $json.from[0].email }}",
+          "Subject": "={{ $json.subject }}",
+          "Category": "={{ JSON.parse($json.content[0].text).category }}",
+          "Sentiment": "={{ JSON.parse($json.content[0].text).sentiment }}",
+          "Priority": "={{ JSON.parse($json.content[0].text).priority }}",
+          "Confidence Score": "={{ JSON.parse($json.content[0].text).confidence_score }}",
+          "Original Message": "={{ $json.body }}",
+          "AI Response": "={{ JSON.parse($json.content[0].text).response_body }}",
+          "Status": "Sent",
+          "Response Sent Time": "={{ new Date().toISOString() }}",
+          "Conversation Stage": "={{ JSON.parse($json.content[0].text).thread_status }}"
+        }
+      },
+      "id": "Append to Excel",
+      "name": "Append to Google Sheets",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 3,
+      "position": [1450, 100],
+      "credentials": {
+        "googleSheetsOAuth2": "google_sheets_credentials"
+      }
+    },
+    {
+      "parameters": {
+        "message": "✅ Email processed and replied successfully"
+      },
+      "id": "Success Log",
+      "name": "Success Log",
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [1650, 100]
+    }
+  ],
+  "connections": {
+    "Schedule Trigger": {
+      "main": [
+        [
+          {
+            "node": "Gmail Search",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Gmail Search": {
+      "main": [
+        [
+          {
+            "node": "Extract Email Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract Email Data": {
+      "main": [
+        [
+          {
+            "node": "AI Email Analyzer",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Email Analyzer": {
+      "main": [
+        [
+          {
+            "node": "JSON Parse Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "JSON Parse Response": {
+      "main": [
+        [
+          {
+            "node": "Send Gmail Reply",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Gmail Reply": {
+      "main": [
+        [
+          {
+            "node": "Mark Email Read",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Mark Email Read": {
+      "main": [
+        [
+          {
+            "node": "Append to Excel",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Append to Excel": {
+      "main": [
+        [
+          {
+            "node": "Success Log",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  }
+}
