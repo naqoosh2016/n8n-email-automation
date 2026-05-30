@@ -1,0 +1,277 @@
+{
+  "name": "Lead Generation & Business Research",
+  "description": "Automated lead generation workflow that searches for businesses, enriches data, and outputs to Google Sheets",
+  "active": true,
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "1",
+      "name": "When clicking 'Execute Workflow'",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [50, 300]
+    },
+    {
+      "parameters": {
+        "path": "search-leads",
+        "method": "POST",
+        "authentication": "headerAuth",
+        "sendBody": true,
+        "bodyType": "json",
+        "body": "={\n  \"keyword\": \"{{ $json.keyword }}\",\n  \"location\": \"{{ $json.location }}\",\n  \"radius\": \"{{ $json.radius || 5000 }}\",\n  \"type\": \"{{ $json.type || 'restaurant' }}\",\n  \"max_results\": \"{{ $json.max_results || 20 }}\"\n}"
+      },
+      "id": "2",
+      "name": "Google Maps Search",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [250, 300],
+      "credentials": {
+        "httpHeaderAuth": "googleMapsAuth"
+      }
+    },
+    {
+      "parameters": {
+        "resource": "execute",
+        "command": "const axios = require('axios');\nconst businesses = {{ $json.results || [] }};\nconst enriched = [];\n\nfor (const business of businesses) {\n  enriched.push({\n    name: business.name,\n    address: business.formatted_address,\n    phone: business.formatted_phone_number || 'N/A',\n    website: business.website || 'N/A',\n    rating: business.rating || 'N/A',\n    reviews: business.user_ratings_total || 0,\n    lat: business.geometry.location.lat,\n    lng: business.geometry.location.lng,\n    type: business.type,\n    opening_hours: business.opening_hours?.open_now ? 'Open' : 'Closed',\n    url: business.url,\n    processed_at: new Date().toISOString()\n  });\n}\n\nreturn enriched;"
+      },
+      "id": "3",
+      "name": "Parse Google Maps Results",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [450, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://www.google.com/search?q={{ $json.name }}+email+contact",
+        "authentication": "headerAuth",
+        "sendBody": false
+      },
+      "id": "4",
+      "name": "Web Search for Contact Info",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [650, 300],
+      "credentials": {
+        "httpHeaderAuth": "serpApiAuth"
+      }
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "={{ $json.website }}",
+        "authentication": "headerAuth",
+        "sendBody": false,
+        "options": {
+          "timeout": 10
+        }
+      },
+      "id": "5",
+      "name": "Fetch Company Website",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [850, 300],
+      "continueOnFail": true,
+      "credentials": {
+        "httpHeaderAuth": "basicAuth"
+      }
+    },
+    {
+      "parameters": {
+        "resource": "execute",
+        "command": "const regex = /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}/g;\nconst phoneRegex = /\\+?[1-9]\\d{1,14}/g;\n\nconst emails = ({{ $json.body }} || '').match(regex) || [];\nconst phones = ({{ $json.body }} || '').match(phoneRegex) || [];\n\nreturn {\n  extracted_emails: [...new Set(emails)],\n  extracted_phones: [...new Set(phones)],\n  source: 'website_scrape'\n};"
+      },
+      "id": "6",
+      "name": "Extract Contact Details",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1050, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.linkedin.com/v2/search/queries",
+        "authentication": "headerAuth",
+        "sendBody": true,
+        "bodyType": "json",
+        "body": "={\n  \"keywords\": \"{{ $json.name }}\",\n  \"type\": \"company\"\n}"
+      },
+      "id": "7",
+      "name": "LinkedIn Company Search",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [1250, 300],
+      "continueOnFail": true,
+      "credentials": {
+        "httpHeaderAuth": "linkedinAuth"
+      }
+    },
+    {
+      "parameters": {
+        "resource": "execute",
+        "command": "const business = {{ $json }};\nconst score = \n  (business.rating || 0) * 20 +\n  Math.min(business.reviews / 100, 20) +\n  (business.website !== 'N/A' ? 15 : 0) +\n  (business.extracted_emails?.length > 0 ? 20 : 0) +\n  (business.extracted_phones?.length > 0 ? 15 : 0) +\n  (business.opening_hours === 'Open' ? 10 : 0);\n\nreturn {\n  ...business,\n  priority_score: Math.min(score, 100),\n  contact_completeness: {\n    has_phone: business.phone !== 'N/A',\n    has_website: business.website !== 'N/A',\n    has_email: business.extracted_emails?.length > 0,\n    extracted_emails: business.extracted_emails?.join('; ') || 'N/A',\n    extracted_phones: business.extracted_phones?.join('; ') || 'N/A'\n  }\n};"
+      },
+      "id": "8",
+      "name": "Calculate Priority Score",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1450, 300]
+    },
+    {
+      "parameters": {
+        "resource": "spreadsheet",
+        "operation": "append",
+        "sheetName": "Leads",
+        "columns": "name,address,phone,website,rating,reviews,extracted_emails,extracted_phones,priority_score,contact_completeness,processed_at",
+        "fieldsToSend": {
+          "fields": [
+            "name",
+            "address",
+            "phone",
+            "website",
+            "rating",
+            "reviews",
+            "contact_completeness.extracted_emails",
+            "contact_completeness.extracted_phones",
+            "priority_score",
+            "contact_completeness",
+            "processed_at"
+          ]
+        }
+      },
+      "id": "9",
+      "name": "Save to Google Sheets",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.2,
+      "position": [1650, 300],
+      "credentials": {
+        "googleSheetsOAuth2": "googleSheetsAuth"
+      }
+    },
+    {
+      "parameters": {
+        "resource": "spreadsheet",
+        "operation": "append",
+        "sheetName": "LeadLog",
+        "columns": "business_name,search_query,location,total_results,timestamp,status",
+        "fieldsToSend": {
+          "fields": [
+            "name",
+            "keyword",
+            "location",
+            "result_count",
+            "processed_at",
+            "status"
+          ]
+        }
+      },
+      "id": "10",
+      "name": "Log Search Activity",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.2,
+      "position": [1650, 450],
+      "credentials": {
+        "googleSheetsOAuth2": "googleSheetsAuth"
+      }
+    },
+    {
+      "parameters": {
+        "subject": "Lead Generation Report - {{ $json.processed_at }}",
+        "toEmail": "{{ env('REPORT_EMAIL') }}",
+        "message": "<h2>Lead Generation Complete</h2>\n<p><strong>Search Query:</strong> {{ $json.keyword }} in {{ $json.location }}</p>\n<p><strong>Total Leads Found:</strong> {{ $json.result_count }}</p>\n<p><strong>Leads with Contact Info:</strong> {{ $json.contact_leads_count }}</p>\n<p><strong>Average Priority Score:</strong> {{ $json.avg_priority_score }}</p>\n<p><a href='{{ env('SHEETS_URL') }}'>View Full Report in Google Sheets</a></p>"
+      },
+      "id": "11",
+      "name": "Send Report Email",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 1,
+      "position": [1850, 300],
+      "credentials": {
+        "smtp": "gmailSmtp"
+      }
+    },
+    {
+      "parameters": {
+        "resource": "execute",
+        "command": "return { success: true, message: 'Lead generation workflow completed', timestamp: new Date().toISOString() };"
+      },
+      "id": "12",
+      "name": "Finish",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [2000, 300]
+    }
+  ],
+  "connections": {
+    "1": {
+      "main": [
+        [
+          { "node": "2", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "2": {
+      "main": [
+        [
+          { "node": "3", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "3": {
+      "main": [
+        [
+          { "node": "4", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "4": {
+      "main": [
+        [
+          { "node": "5", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "5": {
+      "main": [
+        [
+          { "node": "6", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "6": {
+      "main": [
+        [
+          { "node": "7", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "7": {
+      "main": [
+        [
+          { "node": "8", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "8": {
+      "main": [
+        [
+          { "node": "9", "type": "main", "index": 0 },
+          { "node": "10", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "9": {
+      "main": [
+        [
+          { "node": "11", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "10": {
+      "main": [
+        [
+          { "node": "12", "type": "main", "index": 0 }
+        ]
+      ]
+    }
+  }
+}
