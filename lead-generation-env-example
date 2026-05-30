@@ -1,0 +1,256 @@
+# Lead Generation Workflow - Environment Variables
+# Copy this file to .env and fill in your actual values
+
+# ============================================
+# API Keys & Authentication
+# ============================================
+
+# Google Maps API
+GOOGLE_MAPS_API_KEY=AIzaSyD3wFaWt6e-8w8p9r6QjHmQ1234567890
+
+# SerpAPI (Web Search)
+SERPAPI_KEY=your_serpapi_key_here
+
+# LinkedIn API
+LINKEDIN_API_KEY=your_linkedin_api_key_here
+LINKEDIN_ACCESS_TOKEN=AQWt_5q_7k9m3_hJ1x5V_zP_0q_8j_9l_2w_3e
+
+# Hunter.io (Email Finder - Optional)
+HUNTER_API_KEY=your_hunter_api_key_here
+
+# Comtrade API (Trade Data - Optional)
+COMTRADE_API_KEY=your_comtrade_api_key_here
+
+# ============================================
+# Email Configuration (Gmail SMTP)
+# ============================================
+
+# Gmail address
+GMAIL_ADDRESS=your_email@gmail.com
+
+# Gmail App Password (NOT regular password)
+# Generate at: https://myaccount.google.com/apppasswords
+GMAIL_APP_PASSWORD=xxxx xxxx xxxx xxxx
+
+# SMTP Settings
+SMTP_HOST=smtp.gmail.com
+SMTP_PORT=587
+SMTP_USER=your_email@gmail.com
+SMTP_PASSWORD=xxxx xxxx xxxx xxxx
+SMTP_SECURE=true
+SMTP_TLS=true
+
+# Report recipient email
+REPORT_EMAIL=your_email@gmail.com
+CC_EMAIL=team@company.com
+BCC_EMAIL=archive@company.com
+
+# ============================================
+# Google Sheets Configuration
+# ============================================
+
+# Google Sheets ID (from URL: /spreadsheets/d/{SHEET_ID}/edit)
+GOOGLE_SHEETS_ID=1a2b3c4d5e6f7g8h9i0j1k2l3m4n5o6p7q8r9s0t
+
+# Sheet URLs (for links in reports)
+SHEETS_URL=https://docs.google.com/spreadsheets/d/1a2b3c4d5e6f7g8h9i0j1k2l3m4n5o6p7q8r9s0t/edit
+
+# Google Drive folder for exports
+GOOGLE_DRIVE_FOLDER_ID=your_folder_id_here
+
+# ============================================
+# N8N Configuration
+# ============================================
+
+# N8N Hostname
+N8N_HOST=localhost
+N8N_PORT=5678
+N8N_PROTOCOL=http
+
+# N8N API Access
+N8N_API_KEY=your_n8n_api_key_here
+N8N_WEBHOOK_URL=https://your-domain.com/webhook
+
+# ============================================
+# Workflow Parameters
+# ============================================
+
+# Default search parameters
+DEFAULT_KEYWORD=restaurant
+DEFAULT_LOCATION=San Francisco, CA
+DEFAULT_RADIUS=5000
+DEFAULT_BUSINESS_TYPE=restaurant
+DEFAULT_MAX_RESULTS=20
+
+# Rate limiting (milliseconds)
+API_DELAY=2000
+BATCH_DELAY=60000
+RETRY_DELAY=5000
+
+# Timeouts (seconds)
+HTTP_TIMEOUT=30
+WEBSITE_FETCH_TIMEOUT=10
+API_REQUEST_TIMEOUT=15
+
+# ============================================
+# Webhooks & Callbacks
+# ============================================
+
+# Webhook for real-time notifications
+WEBHOOK_URL=https://your-domain.com/webhook/leads
+
+# Slack Integration (Optional)
+SLACK_WEBHOOK_URL=https://hooks.slack.com/services/YOUR/WEBHOOK/URL
+SLACK_CHANNEL=#leads
+SLACK_BOT_NAME=LeadBot
+
+# Discord Integration (Optional)
+DISCORD_WEBHOOK_URL=https://discordapp.com/api/webhooks/your/webhook/url
+
+# ============================================
+# Database Configuration (Optional)
+# ============================================
+
+# PostgreSQL
+DB_TYPE=postgresql
+DB_HOST=localhost
+DB_PORT=5432
+DB_USER=postgres
+DB_PASSWORD=your_password_here
+DB_NAME=lead_generation
+DB_SSL=false
+
+# MongoDB
+MONGO_URI=mongodb://localhost:27017/lead_generation
+
+# ============================================
+# Cache Configuration (Optional)
+# ============================================
+
+# Redis for caching
+REDIS_HOST=localhost
+REDIS_PORT=6379
+REDIS_PASSWORD=your_redis_password
+REDIS_DB=0
+REDIS_TTL=86400
+
+# ============================================
+# Logging Configuration
+# ============================================
+
+# Log level: debug, info, warn, error
+LOG_LEVEL=info
+
+# Log file paths
+LOG_DIR=./logs
+LOG_FILE_LEADS=./logs/leads.log
+LOG_FILE_ERRORS=./logs/errors.log
+
+# ============================================
+# Data Processing Options
+# ============================================
+
+# Enable duplicate detection
+ENABLE_DUPLICATE_CHECK=true
+
+# Enable sentiment analysis
+ENABLE_SENTIMENT_ANALYSIS=true
+
+# Enable geographic filtering
+ENABLE_GEO_FILTERING=false
+GEO_FILTER_RADIUS=10
+
+# ============================================
+# Export Settings
+# ============================================
+
+# Export format: json, csv, excel, sheets
+EXPORT_FORMAT=sheets
+
+# Export path for local files
+EXPORT_PATH=./exports
+
+# Auto-archive leads older than (days)
+ARCHIVE_AFTER_DAYS=90
+
+# ============================================
+# Security Settings
+# ============================================
+
+# Enable API key rotation
+ENABLE_KEY_ROTATION=true
+KEY_ROTATION_INTERVAL=7776000
+
+# IP Whitelist for API access
+IP_WHITELIST=127.0.0.1,192.168.1.0/24
+
+# Enable request signing
+ENABLE_REQUEST_SIGNING=true
+
+# ============================================
+# Advanced Options
+# ============================================
+
+# Proxy settings (if behind corporate proxy)
+HTTP_PROXY=http://proxy.company.com:8080
+HTTPS_PROXY=https://proxy.company.com:8080
+
+# Browser User Agent (for web scraping)
+USER_AGENT=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36
+
+# Verify SSL Certificates
+VERIFY_SSL=true
+
+# Maximum retries for failed API calls
+MAX_RETRIES=3
+
+# ============================================
+# Notification Settings
+# ============================================
+
+# Send notifications on completion
+NOTIFY_ON_COMPLETION=true
+
+# Send notifications on errors
+NOTIFY_ON_ERROR=true
+
+# Notification threshold (priority score)
+ALERT_THRESHOLD_SCORE=80
+
+# ============================================
+# Custom Parameters
+# ============================================
+
+# Your custom settings below
+CUSTOM_FIELD_1=value1
+CUSTOM_FIELD_2=value2
+
+# ============================================
+# Notes
+# ============================================
+
+# To get Gmail App Password:
+# 1. Enable 2FA on Google Account
+# 2. Go to: https://myaccount.google.com/apppasswords
+# 3. Select "Mail" and "Windows Computer"
+# 4. Copy generated password (16 characters, 4 groups)
+# 5. Paste here without spaces: "xxxx xxxx xxxx xxxx"
+
+# To get Google Sheets ID:
+# URL: https://docs.google.com/spreadsheets/d/{ID}/edit
+# ID is the long string between /d/ and /edit
+
+# To get Google Drive Folder ID:
+# Right-click folder → Share → URL contains /folders/{ID}
+
+# To create n8n API Key:
+# n8n Dashboard → Settings → API → Create API Key
+
+# To create LinkedIn API Access Token:
+# https://www.linkedin.com/developers/apps
+# → Select app → Auth → Create access token
+
+# ============================================
+# IMPORTANT: Never commit this file with real values!
+# Add .env to .gitignore before pushing to GitHub
+# ============================================
